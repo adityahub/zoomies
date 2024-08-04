@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Circular Exhibition Room</title>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+</head>
+<body>
+  <a-scene>
+    <!-- Asset management system -->
+    <a-assets>
+      <video id="wallVideo" src="https://videos.pexels.com/video-files/2840467/2840467-uhd_2560_1440_30fps.mp4" loop="true" crossorigin="anonymous" autoplay="false"></video>
+      <audio id="underwaterSound" src="https://www.soundjay.com/nature/sounds/underwater-01.mp3" loop="true" crossorigin="anonymous"></audio>
+    </a-assets>
+
+    <!-- Circular Wall -->
+    <a-cylinder 
+      src="#wallVideo"
+      radius="10" 
+      height="6" 
+      theta-length="360" 
+      open-ended="true"
+      rotation="0 0 0"
+      scale="-1 1 1">
+    </a-cylinder>
+
+    <!-- Floor -->
+    <a-plane 
+      color="#7BC8A4"
+      width="20" 
+      height="20" 
+      rotation="-90 0 0">
+    </a-plane>
+
+    <!-- User interaction to start video -->
+    <a-entity position="0 1.6 -3">
+      <a-plane id="playButton" color="#4CC3D9" width="2" height="1" text="value: Start Video; align: center" material="shader: flat" class="clickable"></a-plane>
+    </a-entity>
+
+    <!-- Laser controls for Oculus Quest interaction -->
+    <a-entity laser-controls="hand: right" id="rightHand" raycaster="objects: .clickable"></a-entity>
+
+    <!-- Camera and sound -->
+    <a-entity camera look-controls>
+      <a-sound src="#underwaterSound" autoplay="true" loop="true"></a-sound>
+    </a-entity>
+  </a-scene>
+
+  <script>
+    AFRAME.registerComponent('bubble-generator', {
+      init: function () {
+        const el = this.el;
+
+        el.addEventListener('triggerdown', function () {
+          createBubble(el);
+        });
+
+        function createBubble(el) {
+          const bubble = document.createElement('a-sphere');
+          bubble.setAttribute('radius', 0.05);
+          bubble.setAttribute('color', '#ADD8E6'); // Light blue color
+          bubble.setAttribute('position', el.getAttribute('position'));
+          bubble.setAttribute('dynamic-body', '');
+
+          // Randomize initial position and velocity
+          const randomOffset = (Math.random() - 0.5) * 0.1;
+          const randomVelocity = (Math.random() - 0.5) * 0.2;
+
+          bubble.setAttribute('position', {
+            x: el.object3D.position.x + randomOffset,
+            y: el.object3D.position.y,
+            z: el.object3D.position.z + randomOffset
+          });
+
+          // Curly animation
+          bubble.setAttribute('animation__float', {
+            property: 'position',
+            to: `${el.object3D.position.x + randomVelocity} ${el.object3D.position.y + 2 + randomVelocity} ${el.object3D.position.z + randomVelocity}`,
+            dur: 3000,
+            easing: 'easeInOutSine'
+          });
+
+          // Pop animation
+          bubble.setAttribute('animation__pop', {
+            property: 'scale',
+            to: '0 0 0',
+            dur: 500,
+            startEvents: 'pop'
+          });
+
+          el.sceneEl.appendChild(bubble);
+
+          setTimeout(() => {
+            bubble.emit('pop');
+            setTimeout(() => {
+              bubble.parentNode.removeChild(bubble);
+            }, 500);
+          }, 2500);
+        }
+      }
+    });
+
+    document.querySelector('#playButton').addEventListener('click', function () {
+      const video = document.getElementById('wallVideo');
+      video.play();
+      this.setAttribute('visible', 'false');
+
+      // Enable bubble generation on trigger press
+      const rightHand = document.getElementById('rightHand');
+      rightHand.removeAttribute('laser-controls');
+      rightHand.setAttribute('bubble-generator', '');
+    });
+
+    // Adding interaction with raycaster
+    document.querySelector('a-scene').addEventListener('loaded', () => {
+      const sceneEl = document.querySelector('a-scene');
+      const playButton = document.querySelector('#playButton');
+
+      playButton.addEventListener('mouseenter', function () {
+        this.setAttribute('color', '#24CAFF');
+      });
+
+      playButton.addEventListener('mouseleave', function () {
+        this.setAttribute('color', '#4CC3D9');
+      });
+
+      sceneEl.querySelectorAll('.clickable').forEach(function (el) {
+        el.addEventListener('click', function () {
+          el.emit('click');
+        });
+      });
+    });
+  </script>
+</body>
+</html>
